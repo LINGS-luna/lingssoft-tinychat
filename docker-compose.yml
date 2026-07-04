@@ -48,7 +48,7 @@ services:
     image: cloudflare/cloudflared:latest
     container_name: LINGS-chat-tunnel
     restart: unless-stopped
-    command: tunnel --no-autoupdate --url http://pocketbase:8090
+    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
     depends_on:
       - pocketbase
     networks:

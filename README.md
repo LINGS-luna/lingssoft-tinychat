@@ -192,6 +192,7 @@ The FastAPI service uses the following environment variables.
 | `CHROMA_PERSIST_DIR` | `/data/chroma` | Persistent local directory for Chroma vector data |
 | `PORT` | `8000` | FastAPI container listening port |
 | `FASTAPI_HOST_PORT` | `8000` | Host port mapped to the FastAPI container |
+| `TUNNEL_TOKEN` | empty | Cloudflare Zero Trust Named Tunnel token for secure HTTPS routing |
 
 The values can be configured in Docker Compose or an `.env` file:
 
@@ -220,6 +221,7 @@ BOT_USER_ID=your_bot_user_id
 CHROMA_PERSIST_DIR=/data/chroma
 PORT=8000
 FASTAPI_HOST_PORT=8000
+TUNNEL_TOKEN=your_cloudflare_tunnel_token_here
 ```
 
 The FastAPI container mounts `./chroma_data` to `/data/chroma`, so local vector data survives container restarts. This path is now reserved for the upcoming Chroma integration.
