@@ -43,6 +43,17 @@ services:
     networks:
       - chat-network
 
+  # 3. Cloudflare Tunnel (HTTPS Tunneling)
+  cloudflare-tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: LINGS-chat-tunnel
+    restart: unless-stopped
+    command: tunnel --no-autoupdate --url http://pocketbase:8090
+    depends_on:
+      - pocketbase
+    networks:
+      - chat-network
+
 networks:
   chat-network:
     driver: bridge

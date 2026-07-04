@@ -35,6 +35,7 @@ PocketBase messages collection
 | Real-time backend | PocketBase | Chat data, collections, authentication, real-time events |
 | AI service | FastAPI | Webhook handling, AI response generation, business logic |
 | HTTP client | httpx | PocketBase REST API requests |
+| HTTPS Tunneling | Cloudflare Tunnel | Exposes PocketBase securely to HTTPS clients (e.g. GitHub Pages) |
 | Runtime | Docker Compose | Local service orchestration |
 | Python | 3.11 slim | Lightweight AI service runtime |
 
@@ -66,6 +67,7 @@ docker compose up -d
 | PocketBase | http://localhost:8090 |
 | FastAPI AI server | http://localhost:8000 |
 | FastAPI health check | http://localhost:8000/ |
+| Cloudflare Tunnel | Check dynamic URL using `docker logs LINGS-chat-tunnel` |
 
 ### 3. Check the server status
 
