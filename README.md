@@ -48,6 +48,8 @@ tinyChat/
 ├── pb_chatbot/
 │   └── main.py             # FastAPI AI webhook server
 ├── pb_data/                # Local PocketBase data
+├── pb_hooks/
+│   └── webhooks.pb.js      # PocketBase JS hooks for triggering webhooks
 ├── pb_public/              # PocketBase public assets
 └── README.md
 ```
