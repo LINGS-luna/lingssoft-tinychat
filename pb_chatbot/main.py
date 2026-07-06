@@ -141,9 +141,16 @@ def extract_openai_response(data: Any) -> str:
     choices = data.get("choices")
     if isinstance(choices, list) and choices:
         message = choices[0].get("message", {})
+        
+        # 1. Try standard message content
         content = message.get("content")
         if isinstance(content, str) and content.strip():
             return content
+            
+        # 2. Fallback to reasoning_content (e.g. for Gemma QAT or Reasoning models)
+        reasoning_content = message.get("reasoning_content")
+        if isinstance(reasoning_content, str) and reasoning_content.strip():
+            return reasoning_content
 
     return ""
 
@@ -250,10 +257,15 @@ async def call_ai_model(payload: dict[str, Any]) -> str:
     try:
         async with httpx.AsyncClient(timeout=AI_MODEL_TIMEOUT) as client:
             response = await client.post(AI_MODEL_URL, json=request_payload, headers=headers)
-            response.raise_for_status()
+            if response.status_code != 200:
+                return f"[AI 호출 오류] HTTP {response.status_code} - 바디: {response.text}"
             data = response.json()
+    except httpx.TimeoutException as exc:
+        return f"[AI 호출 오류] 타임아웃 발생 ({AI_MODEL_TIMEOUT}초 초과) - {type(exc).__name__}: {exc}"
+    except httpx.RequestError as exc:
+        return f"[AI 호출 오류] 네트워크 에러 - {type(exc).__name__}: {exc}"
     except Exception as exc:
-        return f"[AI 호출 오류] {exc}"
+        return f"[AI 호출 오류] 예외 발생 - {type(exc).__name__}: {exc}"
 
     if provider == "openai":
         text = extract_openai_response(data)
