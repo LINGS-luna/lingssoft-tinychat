@@ -1,0 +1,8 @@
+{
+  "ai_bot_reply": "[AI 봇 답변] '{text}'라고 말씀하셨군요. 이 부분에 AI 엔진을 연동하세요.",
+  "ai_http_error": "[AI 호출 오류] HTTP {status_code} - 바디: {body}",
+  "ai_timeout_error": "[AI 호출 오류] 타임아웃 발생 ({timeout}초 초과) - {exc_type}: {exc_msg}",
+  "ai_network_error": "[AI 호출 오류] 네트워크 에러 - {exc_type}: {exc_msg}",
+  "ai_exception": "[AI 호출 오류] 예외 발생 - {exc_type}: {exc_msg}",
+  "ai_response_format_error": "[AI 응답 오류] {provider} 응답 형식을 확인하세요."
+}

@@ -1,0 +1,8 @@
+{
+  "ai_bot_reply": "[AI ボットの回答] 「{text}」とおっしゃいましたね。ここにAIエンジンを連携してください。",
+  "ai_http_error": "[AI 呼び出しエラー] HTTP {status_code} - ボディ: {body}",
+  "ai_timeout_error": "[AI 呼び出しエラー] タイムアウト発生（{timeout}秒超過）- {exc_type}: {exc_msg}",
+  "ai_network_error": "[AI 呼び出しエラー] ネットワークエラー - {exc_type}: {exc_msg}",
+  "ai_exception": "[AI 呼び出しエラー] 例外発生 - {exc_type}: {exc_msg}",
+  "ai_response_format_error": "[AI 応答エラー] {provider} の応答形式を確認してください。"
+}
