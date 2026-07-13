@@ -5,6 +5,8 @@ from typing import Any
 import httpx
 from fastapi import BackgroundTasks, FastAPI, Request
 
+from i18n import t
+
 app = FastAPI()
 logger = logging.getLogger("tinychat")
 
@@ -248,7 +250,7 @@ def build_request_payload(provider: str, payload: dict[str, Any]) -> dict[str, A
 async def call_ai_model(payload: dict[str, Any]) -> str:
     if not AI_MODEL_URL:
         text = payload.get("text", "")
-        return f"[AI 봇 답변] '{text}'라고 말씀하셨군요. 이 부분에 AI 엔진을 연동하세요."
+        return t("ai_bot_reply", text=text)
 
     provider = detect_llm_provider()
     request_payload = build_request_payload(provider, payload)
@@ -258,14 +260,14 @@ async def call_ai_model(payload: dict[str, Any]) -> str:
         async with httpx.AsyncClient(timeout=AI_MODEL_TIMEOUT) as client:
             response = await client.post(AI_MODEL_URL, json=request_payload, headers=headers)
             if response.status_code != 200:
-                return f"[AI 호출 오류] HTTP {response.status_code} - 바디: {response.text}"
+                return t("ai_http_error", status_code=response.status_code, body=response.text)
             data = response.json()
     except httpx.TimeoutException as exc:
-        return f"[AI 호출 오류] 타임아웃 발생 ({AI_MODEL_TIMEOUT}초 초과) - {type(exc).__name__}: {exc}"
+        return t("ai_timeout_error", timeout=AI_MODEL_TIMEOUT, exc_type=type(exc).__name__, exc_msg=str(exc))
     except httpx.RequestError as exc:
-        return f"[AI 호출 오류] 네트워크 에러 - {type(exc).__name__}: {exc}"
+        return t("ai_network_error", exc_type=type(exc).__name__, exc_msg=str(exc))
     except Exception as exc:
-        return f"[AI 호출 오류] 예외 발생 - {type(exc).__name__}: {exc}"
+        return t("ai_exception", exc_type=type(exc).__name__, exc_msg=str(exc))
 
     if provider == "openai":
         text = extract_openai_response(data)
@@ -277,7 +279,7 @@ async def call_ai_model(payload: dict[str, Any]) -> str:
     if text:
         return text
 
-    return f"[AI 응답 오류] {provider} 응답 형식을 확인하세요."
+    return t("ai_response_format_error", provider=provider)
 
 
 async def create_record(collection_name: str, payload: dict[str, Any]) -> int:

@@ -1,0 +1,8 @@
+{
+  "ai_bot_reply": "[AI 机器人回复] 您说的是 '{text}'。 请在此处连接 AI 引擎。",
+  "ai_http_error": "[AI 调用错误] HTTP {status_code} - 响应体: {body}",
+  "ai_timeout_error": "[AI 调用错误] 发生超时（超过 {timeout} 秒）- {exc_type}: {exc_msg}",
+  "ai_network_error": "[AI 调用错误] 网络错误 - {exc_type}: {exc_msg}",
+  "ai_exception": "[AI 调用错误] 发生异常 - {exc_type}: {exc_msg}",
+  "ai_response_format_error": "[AI 响应错误] 请检查 {provider} 的响应格式。"
+}
