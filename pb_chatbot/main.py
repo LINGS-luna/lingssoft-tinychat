@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 from typing import Any
@@ -282,13 +283,13 @@ async def call_ai_model(payload: dict[str, Any]) -> str:
     return t("ai_response_format_error", provider=provider)
 
 
-async def create_record(collection_name: str, payload: dict[str, Any]) -> int:
+async def create_record(collection_name: str, payload: dict[str, Any]) -> dict[str, Any]:
     url = f"{POCKETBASE_URL}/api/collections/{collection_name}/records"
 
     async with httpx.AsyncClient() as client:
         response = await client.post(url, json=payload)
         response.raise_for_status()
-        return response.status_code
+        return response.json()
 
 
 async def write_chat_message(
@@ -296,17 +297,19 @@ async def write_chat_message(
     room_id: str,
     document_id: str = "",
     attachments: list[str] | None = None,
-) -> int:
+    processing_status: str = "completed",
+) -> str:
     payload = {
         "text": text,
         "user_id": BOT_USER_ID,
         "room": room_id,
         "message_type": "bot",
-        "processing_status": "completed",
+        "processing_status": processing_status,
         "document_id": document_id or None,
         "attachments": attachments or [],
     }
-    return await create_record(MESSAGES_COLLECTION, payload)
+    record = await create_record(MESSAGES_COLLECTION, payload)
+    return record.get("id", "")
 
 
 async def update_record(collection_name: str, record_id: str, payload: dict) -> int:
@@ -376,7 +379,71 @@ def queue_document_ingestion(document_id: str, room_id: str, file_urls: list[str
     )
 
 
-async def chat_with_rag(record: dict[str, Any]) -> dict[str, Any]:
+async def stream_ai_model(payload: dict[str, Any], update_callback) -> None:
+    provider = detect_llm_provider()
+    if provider == "generic":
+        text = await call_ai_model(payload)
+        await update_callback(text, True)
+        return
+
+    request_payload = build_request_payload(provider, payload)
+    request_payload["stream"] = True
+    headers = build_llm_headers(provider)
+
+    accumulated_text = ""
+    chunk_count = 0
+
+    try:
+        async with httpx.AsyncClient(timeout=AI_MODEL_TIMEOUT) as client:
+            async with client.stream("POST", AI_MODEL_URL, json=request_payload, headers=headers) as response:
+                if response.status_code != 200:
+                    text_bytes = await response.aread()
+                    error_msg = t("ai_http_error", status_code=response.status_code, body=text_bytes.decode(errors="ignore"))
+                    await update_callback(error_msg, True)
+                    return
+
+                if provider == "openai":
+                    async for line in response.aiter_lines():
+                        line = line.strip()
+                        if line.startswith("data: ") and line != "data: [DONE]":
+                            try:
+                                data = json.loads(line[6:])
+                                choices = data.get("choices", [])
+                                if choices:
+                                    content = choices[0].get("delta", {}).get("content", "")
+                                    if content:
+                                        accumulated_text += content
+                                        chunk_count += 1
+                                        if chunk_count % 5 == 0:
+                                            await update_callback(accumulated_text, False)
+                            except json.JSONDecodeError:
+                                pass
+                elif provider == "ollama":
+                    async for line in response.aiter_lines():
+                        if not line.strip():
+                            continue
+                        try:
+                            data = json.loads(line)
+                            content = data.get("message", {}).get("content", "")
+                            if content:
+                                accumulated_text += content
+                                chunk_count += 1
+                                if chunk_count % 5 == 0:
+                                    await update_callback(accumulated_text, False)
+                        except json.JSONDecodeError:
+                            pass
+
+        await update_callback(accumulated_text, True)
+
+    except Exception as exc:
+        logger.exception("Stream error")
+        error_msg = t("ai_exception", exc_type=type(exc).__name__, exc_msg=str(exc))
+        if accumulated_text:
+            error_msg = accumulated_text + "\n\n" + error_msg
+        await update_callback(error_msg, True)
+
+
+async def chat_with_rag_task(record: dict[str, Any]) -> None:
     text = record.get("text", "")
     sender_id = record.get("user_id", "")
     room_id = record.get("room", "general")
@@ -384,17 +451,22 @@ async def chat_with_rag(record: dict[str, Any]) -> dict[str, Any]:
     attachments = normalize_file_list(record.get("attachments"))
     metadata = record.get("metadata")
     message_id = record.get("id", "")
-    conversation_history = await fetch_recent_messages(room_id, exclude_message_id=message_id)
 
     if message_id:
         try:
-            await update_record(
-                MESSAGES_COLLECTION,
-                message_id,
-                {"processing_status": "processing"},
-            )
+            await update_record(MESSAGES_COLLECTION, message_id, {"processing_status": "processing"})
         except Exception as exc:
             logger.warning("Failed to update message status: %s", exc)
+
+    bot_message_id = await write_chat_message(
+        text="...",
+        room_id=room_id,
+        document_id=document_id,
+        attachments=attachments,
+        processing_status="processing",
+    )
+
+    conversation_history = await fetch_recent_messages(room_id, exclude_message_id=message_id)
 
     payload = build_ai_payload(
         text=text,
@@ -405,29 +477,24 @@ async def chat_with_rag(record: dict[str, Any]) -> dict[str, Any]:
         conversation_history=conversation_history,
         metadata=metadata if isinstance(metadata, dict) else {},
     )
-    ai_response = await call_ai_model(payload)
-    status_code = await write_chat_message(
-        ai_response,
-        room_id,
-        document_id=document_id,
-        attachments=attachments,
-    )
+
+    async def update_callback(accumulated_text: str, is_done: bool):
+        try:
+            status = "completed" if is_done else "processing"
+            await update_record(MESSAGES_COLLECTION, bot_message_id, {
+                "text": accumulated_text or "...",
+                "processing_status": status
+            })
+        except Exception as e:
+            logger.warning(f"Failed to update streaming message: {e}")
+
+    await stream_ai_model(payload, update_callback)
 
     if message_id:
         try:
-            await update_record(
-                MESSAGES_COLLECTION,
-                message_id,
-                {"processing_status": "completed"},
-            )
+            await update_record(MESSAGES_COLLECTION, message_id, {"processing_status": "completed"})
         except Exception as exc:
             logger.warning("Failed to finalize message status: %s", exc)
-
-    return {
-        "status": "success",
-        "pocketbase_response": status_code,
-        "message_id": message_id,
-    }
 
 
 async def ingest_document(collection_name: str, record: dict[str, Any]) -> dict[str, Any]:
@@ -502,7 +569,7 @@ async def run_document_ingestion_task(collection_name: str, record: dict[str, An
                 logger.warning("Failed to persist document failure: %s", nested_exc)
 
 
-async def handle_message_webhook(data: dict) -> dict:
+async def handle_message_webhook(data: dict, background_tasks: BackgroundTasks) -> dict:
     record = extract_record(data)
     sender_id = record.get("user_id", "")
     message_type = record.get("message_type", "user")
@@ -520,20 +587,8 @@ async def handle_message_webhook(data: dict) -> dict:
             "processing_status": processing_status,
         }
 
-    try:
-        return await chat_with_rag(record)
-    except Exception as exc:
-        message_id = record.get("id", "")
-        if message_id:
-            try:
-                await update_record(
-                    MESSAGES_COLLECTION,
-                    message_id,
-                    {"processing_status": "failed"},
-                )
-            except Exception as nested_exc:
-                logger.warning("Failed to persist message failure: %s", nested_exc)
-        return {"status": "error", "detail": str(exc)}
+    background_tasks.add_task(chat_with_rag_task, record)
+    return {"status": "queued"}
 
 
 async def handle_document_webhook(data: dict, background_tasks: BackgroundTasks) -> dict:
@@ -600,16 +655,16 @@ async def pocketbase_webhook(request: Request, background_tasks: BackgroundTasks
     if is_document_event(data, record):
         return await handle_document_webhook(data, background_tasks)
 
-    return await handle_message_webhook(data)
+    return await handle_message_webhook(data, background_tasks)
 
 
 @app.post("/webhook/messages")
-async def pocketbase_message_webhook(request: Request):
+async def pocketbase_message_webhook(request: Request, background_tasks: BackgroundTasks):
     """
     PocketBase message-created webhook entrypoint.
     """
     data = await request.json()
-    return await handle_message_webhook(data)
+    return await handle_message_webhook(data, background_tasks)
 
 
 @app.post("/webhook/documents")
