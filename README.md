@@ -89,13 +89,13 @@ Expected response:
 
 1. A user creates a chat message in the PocketBase `messages` collection.
 2. A PocketBase message webhook calls the FastAPI `/webhook/messages` endpoint.
-3. FastAPI parses the message text, sender ID, and room ID from the webhook payload.
+3. FastAPI parses the message text, sender ID, and room ID from the webhook payload and immediately returns a success status to prevent webhook blocking.
 4. Messages sent by the bot itself are ignored to prevent infinite response loops.
-5. The AI service routes chat requests through `chat_with_rag()`, which prepares message context for the model layer and writes the bot response back to the `messages` collection.
-6. File or document events can be routed separately to `/webhook/documents`, where `ingest_document()` runs in the background without blocking the chat response path.
-7. Before calling the model, FastAPI loads the most recent messages for the same room from PocketBase and sends them as lightweight conversation memory.
+5. The AI service routes chat requests through a background task, which retrieves relevant context from ChromaDB (RAG) and prepares message history.
+6. The AI response is streamed back to PocketBase chunk-by-chunk, updating a placeholder message record to create a real-time typing effect on the frontend.
+7. File or document events can be routed separately to `/webhook/documents`, where `ingest_document()` runs in the background, extracting text from files (like PDFs) and indexing them into ChromaDB for future RAG queries.
 
-If `AI_MODEL_URL` is configured, FastAPI forwards the user message through a provider-aware LLM adapter and uses the returned text as the bot response. Supported modes are `ollama`, `openai`, and `generic`. If `AI_MODEL_URL` is empty, the service falls back to the current placeholder response.
+If `AI_MODEL_URL` is configured, FastAPI forwards the user message through a provider-aware LLM adapter (OpenAI or Ollama via HTTP streaming) and uses the returned text as the bot response.
 
 ## API
 
@@ -158,10 +158,9 @@ Expected payload shape:
 Current ingestion behavior:
 
 - marks the document as `processing`
-- prepares PocketBase file URLs for later parsers and chunkers
-- finalizes the record as `completed` with a placeholder `chunk_count`
-
-This keeps the ingestion lifecycle separate from chat generation so that a later Chroma or embedding step can be added inside `ingest_document()` without changing the webhook contract.
+- downloads the PocketBase file and extracts text (supports PDFs and raw text)
+- chunks the extracted text and embeds it into a local ChromaDB collection isolated by `room_id`
+- finalizes the record as `completed` and updates `chunk_count`
 
 Example queued response:
 
@@ -233,7 +232,7 @@ DEFAULT_LANGUAGE=en
 
 tinyChat supports multiple languages for system messages and error logs. You can change the language by setting `DEFAULT_LANGUAGE` to one of the supported locales: `en` (English), `ko` (Korean), `zh` (Chinese), or `ja` (Japanese). Language files are located in `pb_chatbot/locales/`.
 
-The FastAPI container mounts `./chroma_data` to `/data/chroma`, so local vector data survives container restarts. This path is now reserved for the upcoming Chroma integration.
+The FastAPI container mounts `./chroma_data` to `/data/chroma`, so local vector data survives container restarts. This path is used by ChromaDB to store document embeddings for the RAG pipeline.
 
 ### Lightweight memory
 
@@ -337,14 +336,14 @@ To reset local PocketBase data, remove `pb_data/`. This deletes local database s
 
 ## Roadmap
 
-- OpenAI or local LLM integration
-- Bot user ID configuration through environment variables
-- PocketBase admin setup documentation
-- Automated `messages` collection schema setup
-- Room-specific system prompts
-- RAG-based document retrieval responses
-- Streaming responses and typing/status events
-- Authenticated webhook verification
+- [x] OpenAI or local LLM integration
+- [x] RAG-based document retrieval responses (ChromaDB)
+- [x] Streaming responses and typing/status events
+- [ ] Bot user ID configuration through environment variables
+- [ ] PocketBase admin setup documentation
+- [ ] Automated `messages` collection schema setup
+- [ ] Room-specific system prompts
+- [ ] Authenticated webhook verification
 
 ## License
 

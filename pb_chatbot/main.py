@@ -7,6 +7,7 @@ import httpx
 from fastapi import BackgroundTasks, FastAPI, Request
 
 from i18n import t
+from rag import ingest_document_chunks, retrieve_context
 
 app = FastAPI()
 logger = logging.getLogger("tinychat")
@@ -468,6 +469,10 @@ async def chat_with_rag_task(record: dict[str, Any]) -> None:
 
     conversation_history = await fetch_recent_messages(room_id, exclude_message_id=message_id)
 
+    context_text = retrieve_context(text, room_id)
+    if context_text:
+        text = f"User Question: {text}\n\nRelevant Context from Documents:\n{context_text}"
+
     payload = build_ai_payload(
         text=text,
         sender_id=sender_id,
@@ -530,13 +535,24 @@ async def ingest_document(collection_name: str, record: dict[str, Any]) -> dict[
         },
     )
 
+    try:
+        chunk_count = await ingest_document_chunks(document_id, room_id, file_urls)
+    except Exception as e:
+        if collection_name == DOCUMENTS_COLLECTION and document_id:
+            await update_record(
+                DOCUMENTS_COLLECTION,
+                document_id,
+                {"processing_status": "failed", "last_error": str(e)}
+            )
+        raise e
+
     if collection_name == DOCUMENTS_COLLECTION and document_id:
         await update_record(
             DOCUMENTS_COLLECTION,
             document_id,
             {
                 "processing_status": "completed",
-                "chunk_count": len(file_urls),
+                "chunk_count": chunk_count,
                 "last_error": "",
             },
         )
@@ -546,6 +562,7 @@ async def ingest_document(collection_name: str, record: dict[str, Any]) -> dict[
         "document_id": document_id,
         "room_id": room_id,
         "file_count": len(file_urls),
+        "chunk_count": chunk_count,
     }
 
 
