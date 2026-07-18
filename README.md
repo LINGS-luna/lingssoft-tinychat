@@ -308,13 +308,7 @@ For the webhook flow used by this project:
 - New documents should start with `processing_status = pending`.
 - The document webhook moves documents to `queued` before ingestion begins.
 
-The FastAPI service currently uses a placeholder bot account ID:
-
-```python
-"user_id": "bot_user_id_placeholder"
-```
-
-Before using the service in a real environment, create a bot user or bot record in PocketBase and replace the placeholder with the correct record ID.
+For a complete walkthrough on accessing the PocketBase Admin UI, creating the initial admin account, and configuring the required Bot User, please refer to the [Admin Setup Guide](pocketbase/admin-setup.md).
 
 ## Development
 
@@ -340,7 +334,7 @@ To reset local PocketBase data, remove `pb_data/`. This deletes local database s
 - [x] RAG-based document retrieval responses (ChromaDB)
 - [x] Streaming responses and typing/status events
 - [x] Bot user ID configuration through environment variables
-- [ ] PocketBase admin setup documentation
+- [x] PocketBase admin setup documentation
 - [ ] Automated `messages` collection schema setup
 - [ ] Room-specific system prompts
 - [ ] Authenticated webhook verification
