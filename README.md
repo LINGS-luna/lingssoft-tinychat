@@ -339,7 +339,7 @@ To reset local PocketBase data, remove `pb_data/`. This deletes local database s
 - [x] OpenAI or local LLM integration
 - [x] RAG-based document retrieval responses (ChromaDB)
 - [x] Streaming responses and typing/status events
-- [ ] Bot user ID configuration through environment variables
+- [x] Bot user ID configuration through environment variables
 - [ ] PocketBase admin setup documentation
 - [ ] Automated `messages` collection schema setup
 - [ ] Room-specific system prompts
