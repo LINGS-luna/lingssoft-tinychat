@@ -335,7 +335,7 @@ To reset local PocketBase data, remove `pb_data/`. This deletes local database s
 - [x] Streaming responses and typing/status events
 - [x] Bot user ID configuration through environment variables
 - [x] PocketBase admin setup documentation
-- [ ] Automated `messages` collection schema setup
+- [x] Automated `messages` collection schema setup
 - [ ] Room-specific system prompts
 - [ ] Authenticated webhook verification
 
