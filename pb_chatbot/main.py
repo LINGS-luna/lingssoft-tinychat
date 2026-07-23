@@ -80,6 +80,7 @@ def build_ai_payload(
     attachment_ids: list[str] | None = None,
     conversation_history: list[dict[str, str]] | None = None,
     metadata: dict[str, Any] | None = None,
+    system_prompt: str = "",
 ) -> dict[str, Any]:
     return {
         "text": text,
@@ -89,6 +90,7 @@ def build_ai_payload(
         "attachment_ids": attachment_ids or [],
         "conversation_history": conversation_history or [],
         "metadata": metadata or {},
+        "system_prompt": system_prompt or LLM_SYSTEM_PROMPT,
     }
 
 
@@ -177,7 +179,8 @@ def extract_ollama_response(data: Any) -> str:
 
 
 def build_openai_payload(payload: dict[str, Any]) -> dict[str, Any]:
-    messages = [{"role": "system", "content": LLM_SYSTEM_PROMPT}]
+    system_prompt = payload.get("system_prompt") or LLM_SYSTEM_PROMPT
+    messages = [{"role": "system", "content": system_prompt}]
     for item in payload.get("conversation_history", []):
         role = item.get("role", "user")
         content = item.get("content", "")
@@ -227,10 +230,11 @@ def build_ollama_payload(payload: dict[str, Any]) -> dict[str, Any]:
         f"user_message:\n{user_text}"
     )
 
+    system_prompt = payload.get("system_prompt") or LLM_SYSTEM_PROMPT
     return {
         "model": LLM_MODEL,
         "messages": [
-            {"role": "system", "content": LLM_SYSTEM_PROMPT},
+            {"role": "system", "content": system_prompt},
             {"role": "user", "content": prompt},
         ],
         "stream": False,
@@ -369,6 +373,33 @@ async def fetch_recent_messages(room_id: str, exclude_message_id: str = "") -> l
     return history[-MEMORY_WINDOW_SIZE:]
 
 
+async def fetch_room_system_prompt(room_id: str) -> str:
+    if not room_id:
+        return LLM_SYSTEM_PROMPT
+
+    params = {
+        "filter": f'name = "{room_id}"',
+        "perPage": "1",
+        "page": "1",
+    }
+    url = f"{POCKETBASE_URL}/api/collections/rooms/records"
+
+    try:
+        async with httpx.AsyncClient(timeout=AI_MODEL_TIMEOUT) as client:
+            response = await client.get(url, params=params)
+            if response.status_code == 200:
+                data = response.json()
+                items = data.get("items", [])
+                if items and isinstance(items, list):
+                    prompt = items[0].get("system_prompt")
+                    if isinstance(prompt, str) and prompt.strip():
+                        return prompt.strip()
+    except Exception as exc:
+        logger.warning("Failed to load room system prompt: %s", exc)
+
+    return LLM_SYSTEM_PROMPT
+
+
 def queue_document_ingestion(document_id: str, room_id: str, file_urls: list[str]) -> None:
     logger.info(
         "Document ingestion queued",
@@ -468,6 +499,7 @@ async def chat_with_rag_task(record: dict[str, Any]) -> None:
     )
 
     conversation_history = await fetch_recent_messages(room_id, exclude_message_id=message_id)
+    room_system_prompt = await fetch_room_system_prompt(room_id)
 
     context_text = retrieve_context(text, room_id)
     if context_text:
@@ -481,6 +513,7 @@ async def chat_with_rag_task(record: dict[str, Any]) -> None:
         attachment_ids=attachments,
         conversation_history=conversation_history,
         metadata=metadata if isinstance(metadata, dict) else {},
+        system_prompt=room_system_prompt,
     )
 
     async def update_callback(accumulated_text: str, is_done: bool):
