@@ -11,6 +11,8 @@ services:
       - ./pb_public:/pb_public
       - ./pb_hooks:/pb_hooks
       - ./pb_migrations:/pb_migrations
+    environment:
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET:-}
     networks:
       - chat-network
 
@@ -40,6 +42,7 @@ services:
       - BOT_USER_ID=${BOT_USER_ID:-bot_user_id_placeholder}
       - CHROMA_PERSIST_DIR=${CHROMA_PERSIST_DIR:-/data/chroma}
       - PORT=${PORT:-8000}
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET:-}
     depends_on:
       - pocketbase
     networks:

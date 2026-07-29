@@ -29,7 +29,8 @@ onRecordAfterCreateSuccess((e) => {
             method: "POST",
             body: JSON.stringify(payload),
             headers: {
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "x-webhook-secret": $os.getenv("WEBHOOK_SECRET") || ""
             },
             timeout: 30
         });
@@ -63,7 +64,8 @@ onRecordAfterCreateSuccess((e) => {
             method: "POST",
             body: JSON.stringify(payload),
             headers: {
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "x-webhook-secret": $os.getenv("WEBHOOK_SECRET") || ""
             },
             timeout: 30
         });

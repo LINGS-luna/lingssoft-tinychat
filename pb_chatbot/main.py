@@ -4,7 +4,7 @@ import os
 from typing import Any
 
 import httpx
-from fastapi import BackgroundTasks, FastAPI, Request
+from fastapi import BackgroundTasks, FastAPI, Request, HTTPException
 
 from i18n import t
 from rag import ingest_document_chunks, retrieve_context
@@ -30,6 +30,7 @@ MESSAGES_COLLECTION = os.getenv("MESSAGES_COLLECTION", "messages")
 DOCUMENTS_COLLECTION = os.getenv("DOCUMENTS_COLLECTION", "documents")
 ATTACHMENTS_COLLECTION = os.getenv("ATTACHMENTS_COLLECTION", "attachments")
 CHROMA_PERSIST_DIR = os.getenv("CHROMA_PERSIST_DIR", "/data/chroma")
+WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET", "").strip()
 
 
 def extract_record(data: dict) -> dict:
@@ -699,6 +700,9 @@ async def pocketbase_webhook(request: Request, background_tasks: BackgroundTasks
     """
     Legacy webhook entrypoint. Dispatches to message or document handlers.
     """
+    if WEBHOOK_SECRET and request.headers.get("x-webhook-secret") != WEBHOOK_SECRET:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
     data = await request.json()
     record = extract_record(data)
 
@@ -713,6 +717,9 @@ async def pocketbase_message_webhook(request: Request, background_tasks: Backgro
     """
     PocketBase message-created webhook entrypoint.
     """
+    if WEBHOOK_SECRET and request.headers.get("x-webhook-secret") != WEBHOOK_SECRET:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
     data = await request.json()
     return await handle_message_webhook(data, background_tasks)
 
@@ -722,5 +729,8 @@ async def pocketbase_document_webhook(request: Request, background_tasks: Backgr
     """
     PocketBase document-created webhook entrypoint.
     """
+    if WEBHOOK_SECRET and request.headers.get("x-webhook-secret") != WEBHOOK_SECRET:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
     data = await request.json()
     return await handle_document_webhook(data, background_tasks)
