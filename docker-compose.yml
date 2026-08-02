@@ -1,7 +1,7 @@
 services:
   # 1. 초경량 실시간 채팅 코어 및 DB (PocketBase)
   pocketbase:
-    image: ghcr.io/muchobien/pocketbase:latest
+    image: ghcr.io/muchobien/pocketbase:0.22.27
     container_name: LINGS-chat-pocketbase
     restart: unless-stopped
     ports:
