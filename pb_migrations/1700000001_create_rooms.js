@@ -1,22 +1,19 @@
-migrate((db) => {
-  const dao = new Dao(db);
-
+migrate((app) => {
   try {
-    dao.findCollectionByNameOrId("rooms");
+    app.findCollectionByNameOrId("rooms");
   } catch (e) {
     const rooms = new Collection({
       name: "rooms",
       type: "base",
-      schema: [
-        { name: "name", type: "text", required: true, options: { min: 1 } },
+      indexes: ["CREATE UNIQUE INDEX `idx_rooms_name` ON `rooms` (`name`)"],
+      fields: [
+        { name: "id", type: "text", system: true },
+        { name: "name", type: "text", required: true, min: 1 },
         { name: "system_prompt", type: "text", required: false }
       ]
     });
-    // Add unique index on name
-    rooms.indexes = ["CREATE UNIQUE INDEX `idx_rooms_name` ON `rooms` (`name`)"];
-    dao.saveCollection(rooms);
+    app.saveNoValidate(rooms);
   }
-}, (db) => {
-  const dao = new Dao(db);
-  try { dao.deleteCollection(dao.findCollectionByNameOrId("rooms")); } catch (e) {}
+}, (app) => {
+  try { app.delete(app.findCollectionByNameOrId("rooms")); } catch (e) {}
 });
