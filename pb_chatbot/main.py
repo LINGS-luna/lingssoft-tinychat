@@ -446,9 +446,18 @@ async def stream_ai_model(payload: dict[str, Any], update_callback) -> None:
                                     delta = choices[0].get("delta", {})
                                     content = delta.get("content") or ""
                                     reasoning = delta.get("reasoning_content") or ""
-                                    chunk_text = content + reasoning
-                                    if chunk_text:
-                                        accumulated_text += chunk_text
+                                    
+                                    if reasoning:
+                                        if "<details>" not in accumulated_text:
+                                            accumulated_text += "<details><summary>🤔 AI 생각 과정</summary>\n\n"
+                                        accumulated_text += reasoning
+                                        
+                                    if content:
+                                        if "<details>" in accumulated_text and "</details>" not in accumulated_text:
+                                            accumulated_text += "\n</details>\n\n"
+                                        accumulated_text += content
+
+                                    if reasoning or content:
                                         chunk_count += 1
                                         if chunk_count % 5 == 0:
                                             await update_callback(accumulated_text, False)
