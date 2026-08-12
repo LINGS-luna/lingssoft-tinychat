@@ -51,7 +51,7 @@ services:
   # 3. Cloudflare Tunnel (HTTPS Tunneling)
   cloudflare-tunnel:
     image: cloudflare/cloudflared:latest
-    container_name: LINGS-chat-tunnel
+    container_name: ${TUNNEL_CONTAINER_NAME}
     restart: unless-stopped
     command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
     depends_on:
