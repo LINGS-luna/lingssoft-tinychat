@@ -195,6 +195,9 @@ The FastAPI service uses the following environment variables.
 | `FASTAPI_HOST_PORT` | `8000` | Host port mapped to the FastAPI container |
 | `TUNNEL_TOKEN` | empty | Cloudflare Zero Trust Named Tunnel token for secure HTTPS routing |
 | `DEFAULT_LANGUAGE` | `en` | Default language for AI bot messages and system errors (`en`, `ko`, `zh`, `ja`) |
+| `TUNNEL_CONTAINER_NAME` | empty | Name of the Cloudflare Tunnel container (for anonymization) |
+| `PB_CONTAINER_NAME` | empty | Name of the PocketBase container (for anonymization) |
+| `AI_CONTAINER_NAME` | empty | Name of the FastAPI AI container (for anonymization) |
 
 The values can be configured in Docker Compose or an `.env` file:
 
@@ -226,6 +229,9 @@ PORT=8000
 FASTAPI_HOST_PORT=8000
 TUNNEL_TOKEN=your_cloudflare_tunnel_token_here
 DEFAULT_LANGUAGE=en
+TUNNEL_CONTAINER_NAME=my-chat-tunnel
+PB_CONTAINER_NAME=my-chat-pocketbase
+AI_CONTAINER_NAME=my-chat-fastapi-ai
 ```
 
 ### Multi-language Support (i18n)
