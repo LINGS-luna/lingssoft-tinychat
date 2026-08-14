@@ -2,7 +2,7 @@ services:
   # 1. 초경량 실시간 채팅 코어 및 DB (PocketBase)
   pocketbase:
     image: ghcr.io/muchobien/pocketbase:latest
-    container_name: LINGS-chat-pocketbase
+    container_name: ${PB_CONTAINER_NAME}
     restart: unless-stopped
     ports:
       - "8090:8090"
@@ -21,7 +21,7 @@ services:
     build:
       context: ./pb_chatbot
       dockerfile: Dockerfile
-    container_name: LINGS-chat-fastapi-ai
+    container_name: ${AI_CONTAINER_NAME}
     restart: unless-stopped
     ports:
       - "${FASTAPI_HOST_PORT:-8000}:${PORT:-8000}"
