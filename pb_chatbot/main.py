@@ -449,7 +449,8 @@ async def stream_ai_model(payload: dict[str, Any], update_callback) -> None:
                                     
                                     if reasoning:
                                         if "<details>" not in accumulated_text:
-                                            accumulated_text += "<details><summary>🤔 AI 생각 과정</summary>\n\n"
+                                            ai_thought_msg = t("ai_thought_process")
+                                            accumulated_text += f"<details><summary>{ai_thought_msg}</summary>\n\n"
                                         accumulated_text += reasoning
                                         
                                     if content:
@@ -516,7 +517,7 @@ async def chat_with_rag_task(record: dict[str, Any]) -> None:
 
     context_text = retrieve_context(text, room_id)
     if context_text:
-        text = f"User Question: {text}\n\nRelevant Context from Documents:\n{context_text}"
+        text = t("rag_prompt_template", text=text, context_text=context_text)
 
     payload = build_ai_payload(
         text=text,

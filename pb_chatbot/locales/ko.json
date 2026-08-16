@@ -4,5 +4,7 @@
   "ai_timeout_error": "[AI 호출 오류] 타임아웃 발생 ({timeout}초 초과) - {exc_type}: {exc_msg}",
   "ai_network_error": "[AI 호출 오류] 네트워크 에러 - {exc_type}: {exc_msg}",
   "ai_exception": "[AI 호출 오류] 예외 발생 - {exc_type}: {exc_msg}",
-  "ai_response_format_error": "[AI 응답 오류] {provider} 응답 형식을 확인하세요."
+  "ai_response_format_error": "[AI 응답 오류] {provider} 응답 형식을 확인하세요.",
+  "ai_thought_process": "🤔 AI 생각 과정",
+  "rag_prompt_template": "사용자 질문: {text}\n\n문서에서 찾은 관련 문맥:\n{context_text}"
 }

@@ -4,5 +4,7 @@
   "ai_timeout_error": "[AI Call Error] Timeout occurred (exceeded {timeout}s) - {exc_type}: {exc_msg}",
   "ai_network_error": "[AI Call Error] Network error - {exc_type}: {exc_msg}",
   "ai_exception": "[AI Call Error] Exception occurred - {exc_type}: {exc_msg}",
-  "ai_response_format_error": "[AI Response Error] Please check the {provider} response format."
+  "ai_response_format_error": "[AI Response Error] Please check the {provider} response format.",
+  "ai_thought_process": "🤔 AI Thought Process",
+  "rag_prompt_template": "User Question: {text}\n\nRelevant Context from Documents:\n{context_text}"
 }
