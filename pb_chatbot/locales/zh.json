@@ -4,5 +4,7 @@
   "ai_timeout_error": "[AI 调用错误] 发生超时（超过 {timeout} 秒）- {exc_type}: {exc_msg}",
   "ai_network_error": "[AI 调用错误] 网络错误 - {exc_type}: {exc_msg}",
   "ai_exception": "[AI 调用错误] 发生异常 - {exc_type}: {exc_msg}",
-  "ai_response_format_error": "[AI 响应错误] 请检查 {provider} 的响应格式。"
+  "ai_response_format_error": "[AI 响应错误] 请检查 {provider} 的响应格式。",
+  "ai_thought_process": "🤔 AI 思考过程",
+  "rag_prompt_template": "用户问题: {text}\n\n来自文档的相关上下文:\n{context_text}"
 }
